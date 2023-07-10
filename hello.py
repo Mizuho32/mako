@@ -1,3 +1,6 @@
+import sys
+import pathlib
+
 from mako.template import Template
 from mako.runtime import Context
 from io import StringIO
@@ -31,3 +34,15 @@ print("---")
 #print("---")
 #print(mytemplate.render(name=False))
 #print("---")
+
+with open(sys.argv[1], "r") as h:
+    text = h.read()
+
+mytemplate = Template(text)
+out = mytemplate.render(CONST=True)
+
+path = pathlib.Path(sys.argv[1])
+out_path = f"{path.stem}_out.py"
+with open(out_path, "w") as h:
+    h.write(out)
+
