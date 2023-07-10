@@ -13,6 +13,8 @@ from mako import exceptions
 from mako import parsetree
 from mako.pygen import adjust_whitespace
 
+import config
+
 _regexp_cache = {}
 
 
@@ -31,6 +33,9 @@ class Lexer:
         self.control_line = []
         self.ternary_stack = []
         self.encoding = input_encoding
+
+        self.in_if = False
+        self.custom = []
 
         if preprocessor is None:
             self.preprocessor = []
@@ -377,6 +382,10 @@ class Lexer:
             text = match.group(1)
             if text:
                 self.append_node(parsetree.Text, text)
+                if self.in_if:
+                    text_node = self.template.nodes[-1]
+                    print("TEXT", text, text_node)
+                    self.custom.append(text_node)
             return True
         else:
             return False
@@ -441,6 +450,9 @@ class Lexer:
                 )
             isend, keyword = m2.group(1, 2)
             isend = isend is not None
+            print("KEYWORD", keyword, isend)
+            print("TEST", text)
+            self.in_if = not self.in_if
 
             if isend:
                 if not len(self.control_line):
@@ -454,7 +466,40 @@ class Lexer:
                         % (text, self.control_line[-1].keyword),
                         **self.exception_kwargs,
                     )
+                target = ""
+                text_nodes = []
+                for node in reversed(self.custom):
+                    if isinstance(node, parsetree.Text):
+                        target = node.content + target
+                        text_nodes.append(node)
+                    elif isinstance(node, str):
+                        print("GEN", text_nodes)
+                        cond = node.replace("if ", "").replace(":", "")
+                        if eval(f"config.{cond}"):
+                            for idx, tn in enumerate(reversed(text_nodes)):
+                                tmp = tn.content#.replace("\n", "\n#")
+                                if idx == 0:
+                                    tn.content = f"#% if {cond}:\n" + tmp
+                                elif idx == len(text_nodes)-1:
+                                    tn.content = tmp + f"#% endif\n"
+                                else:
+                                    tn.content = tmp
+                            #print("ENDIF", target)
+                        else:
+                            for idx, tn in enumerate(reversed(text_nodes)):
+                                tmp = tn.content.replace("\n", "\n#")
+                                if idx == 0:
+                                    tn.content = f"#% if {cond}:\n#" + tmp
+                                elif idx == len(text_nodes)-1:
+                                    tn.content = tmp + "% endif\n"
+                                else:
+                                    tn.content = tmp
+                            #print("#ENDIF#", config.name)
+
+            else:
+                self.custom.append(text)
             self.append_node(parsetree.ControlLine, keyword, isend, text)
+            print(self.template.nodes[-1])
         else:
             self.append_node(parsetree.Comment, text)
         return True
