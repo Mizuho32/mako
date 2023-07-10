@@ -475,25 +475,24 @@ class Lexer:
                     elif isinstance(node, str):
                         print("GEN", text_nodes)
                         cond = node.replace("if ", "").replace(":", "")
-                        if eval(f"config.{cond}"):
+                        if hasattr(config, cond) and  eval(f"config.{cond}"):
                             for idx, tn in enumerate(reversed(text_nodes)):
                                 tmp = tn.content#.replace("\n", "\n#")
                                 if idx == 0:
-                                    tn.content = f"#% if {cond}:\n" + tmp
-                                elif idx == len(text_nodes)-1:
-                                    tn.content = tmp + f"#% endif\n"
-                                else:
-                                    tn.content = tmp
+                                    tmp = f"#% if {cond}:\n" + tmp
+                                if idx == len(text_nodes)-1:
+                                    tmp = tmp + f"#% endif\n"
+
+                                tn.content = tmp
                             #print("ENDIF", target)
                         else:
                             for idx, tn in enumerate(reversed(text_nodes)):
                                 tmp = tn.content.replace("\n", "\n#")
                                 if idx == 0:
-                                    tn.content = f"#% if {cond}:\n#" + tmp
-                                elif idx == len(text_nodes)-1:
-                                    tn.content = tmp + "% endif\n"
-                                else:
-                                    tn.content = tmp
+                                    tmp = f"#% if {cond}:\n#" + tmp
+                                if idx == len(text_nodes)-1:
+                                    tmp = tmp + "% endif\n"
+                                tn.content = tmp
                             #print("#ENDIF#", config.name)
 
             else:
