@@ -39,7 +39,7 @@ with open(sys.argv[1], "r") as h:
     text = h.read()
 
 mytemplate = Template(text)
-out = mytemplate.render(CONST=True)
+out = mytemplate.render(name="jack", CONST=True)
 
 path = pathlib.Path(sys.argv[1])
 out_path = f"{path.stem}_out.py"
